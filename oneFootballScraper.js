@@ -6,11 +6,9 @@ const MAX_DEPTH = 2;
 const BASE_DIR = path.join(__dirname, "onefootball", "articles");
 
 require("dotenv").config();
-const { OpenAI } = require("openai");
+const Groq = require("groq-sdk");
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const groq = new Groq({ apiKey: process.env.GROK_AI_API });
 
 // Delay helper
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -61,20 +59,21 @@ const extractContentAndRelated = async (page, url) => {
   }
 };
 
-const summarizeContent = async (text) => {
+const summarizeWithGroq = async (text) => {
   try {
-    const trimmed = text.slice(0, 3000); // trim to safe size
+    const trimmed = text.slice(0, 3000); // safe limit
     const prompt = `Summarize the following football article in 3-5 bullet points:\n\n${trimmed}`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // ✅ Use your intended model here
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.5,
+    const response = await groq.chat.completions.create({
+      messages: [
+        { role: "user", content: prompt }
+      ],
+      model: "llama3-8b-8192",
     });
 
-    return response.choices[0].message.content;
+    return response.choices?.[0]?.message?.content || "No summary returned.";
   } catch (err) {
-    // console.error("❌ Error summarizing:", err.message);
+    console.error("❌ Groq summarization failed:", err.message);
     return "Summary generation failed.";
   }
 };
@@ -95,7 +94,8 @@ const dfs = async (browser, node, depth, dir) => {
   );
   await page.close();
 
-  const summary = await summarizeContent(content);
+  // Use Groq for summarization
+  const summary = await summarizeWithGroq(content);
 
   saveArticle(dir, {
     title: node.title,
@@ -103,6 +103,21 @@ const dfs = async (browser, node, depth, dir) => {
     content,
     summary,
   });
+
+  // Print article info to stdout
+  console.log(`\n=== Article Processed ===`);
+  console.log(`Title: ${node.title}`);
+  console.log(`Summary: ${summary}`);
+  console.log(`Link: ${node.link}`);
+  console.log(`Content: ${content}`);
+  if (relatedLinks && relatedLinks.length > 0) {
+    console.log('Related Articles:');
+    relatedLinks.forEach((rel, idx) => {
+      console.log(`  ${idx + 1}. ${rel.title} - ${rel.link}`);
+    });
+  } else {
+    console.log('Related Articles: None');
+  }
 
   for (let i = 0; i < (depth === 0 ? 5 : 2) && i < relatedLinks.length; i++) {
     const child = relatedLinks[i];

@@ -1,12 +1,12 @@
 # OneFootball DFS Summarizer
 
-A web scraper and summarization API for OneFootball articles. This project uses Node.js (Puppeteer) to crawl and extract football news articles from [onefootball.com](https://onefootball.com), and Python (FastAPI) to provide a streaming API for triggering scrapes and retrieving results. Optionally, it can summarize articles using OpenAI's API.
+A web scraper and summarization API for OneFootball articles. This project uses Node.js (Puppeteer) to crawl and extract football news articles from [onefootball.com](https://onefootball.com), and Python (FastAPI) to provide a streaming API for triggering scrapes and retrieving results. Optionally, it can summarize articles using Groq AI models.
 
 ## Features
 - Scrapes top articles and related news from OneFootball using Puppeteer
 - Recursively follows related articles up to a configurable depth
 - Stores extracted content and metadata in structured JSON files
-- (Optional) Summarizes articles using OpenAI GPT models
+- (Optional) Summarizes articles using Groq AI models
 - Provides a FastAPI server with endpoints to trigger scraping and stream results
 
 ## Project Structure
@@ -25,7 +25,7 @@ A web scraper and summarization API for OneFootball articles. This project uses 
 - Python 3.8+
 - Node.js 16+
 - npm (for installing Node.js dependencies)
-- An OpenAI API key (for summarization)
+- A Groq AI API key (for summarization)
 
 ### 1. Clone the repository
 ```bash
@@ -40,13 +40,13 @@ pip install -r requirements.txt
 
 ### 3. Install Node.js dependencies
 ```bash
-npm install puppeteer openai dotenv
+npm install puppeteer dotenv groq-sdk
 ```
 
 ### 4. Set up environment variables
-Create a `.env` file in the project root with your OpenAI API key:
+Create a `.env` file in the project root with your API keys:
 ```
-OPENAI_API_KEY=your_openai_api_key_here
+GROK_AI_API=your_groq_api_key_here        # For summarization
 ```
 
 ## Usage
@@ -81,15 +81,24 @@ Each article and its related articles are saved in nested directories, each cont
 ```
 
 ## Environment Variables
-- `OPENAI_API_KEY` — Required for article summarization. Place in `.env` file.
+- `GROK_AI_API` — For summarization
 
 ## Dependencies
-- **Python:** fastapi, uvicorn, python-dotenv, openai
-- **Node.js:** puppeteer, openai, dotenv
+- **Python:** fastapi, uvicorn, python-dotenv
+- **Node.js:** puppeteer, dotenv, groq-sdk
 
 ## License
 MIT
 
 ## Acknowledgements
 - [OneFootball](https://onefootball.com) for the source content
-- [OpenAI](https://openai.com) for summarization API 
+
+## Summarization Provider Configuration
+
+The code uses Groq AI for summarization. Make sure to set the corresponding API key in your `.env` file.
+
+**Environment Variables:**
+- `GROK_AI_API` — For summarization
+
+**Dependencies:**
+- `groq-sdk` (for Groq AI) 
