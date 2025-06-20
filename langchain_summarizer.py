@@ -1,6 +1,10 @@
 import os
 from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
+from pydantic.v1 import SecretStr
+from fastapi import FastAPI
+from fastapi import Body
+from pydantic import BaseModel
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama3-8b-8192")
@@ -18,7 +22,8 @@ def get_groq_llm():
     return ChatGroq(
         model=GROQ_MODEL,
         temperature=0.2,
-        api_key=GROQ_API_KEY
+        api_key=SecretStr(GROQ_API_KEY) if GROQ_API_KEY else None,
+        stop_sequences=None
     )
 
 def summarize_article(article_text: str) -> str:
@@ -29,4 +34,13 @@ def summarize_article(article_text: str) -> str:
         ("human", prompt)
     ]
     response = llm.invoke(messages)
-    return getattr(response, "content", str(response)).strip() 
+    return getattr(response, "content", str(response)).strip()
+
+app = FastAPI()
+
+class ArticleRequest(BaseModel):
+    article_text: str
+
+@app.post("/summarize")
+def summarize(request: ArticleRequest):
+    return {"summary": summarize_article(request.article_text)}

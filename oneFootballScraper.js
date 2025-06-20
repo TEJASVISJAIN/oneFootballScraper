@@ -1,6 +1,7 @@
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
+const axios = require('axios');
 
 const MAX_DEPTH = 2;
 const BASE_DIR = path.join(__dirname, "onefootball", "articles");
@@ -8,7 +9,7 @@ const BASE_DIR = path.join(__dirname, "onefootball", "articles");
 require("dotenv").config();
 const Groq = require("groq-sdk");
 
-const groq = new Groq({ apiKey: process.env.GROK_AI_API });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // Delay helper
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -61,19 +62,10 @@ const extractContentAndRelated = async (page, url) => {
 
 const summarizeWithGroq = async (text) => {
   try {
-    const trimmed = text.slice(0, 3000); // safe limit
-    const prompt = `Summarize the following football article in 3-5 bullet points:\n\n${trimmed}`;
-
-    const response = await groq.chat.completions.create({
-      messages: [
-        { role: "user", content: prompt }
-      ],
-      model: "llama3-8b-8192",
-    });
-
-    return response.choices?.[0]?.message?.content || "No summary returned.";
+    const response = await axios.post('http://localhost:8000/summarize', { article_text: text });
+    return response.data.summary || "No summary returned.";
   } catch (err) {
-    console.error("❌ Groq summarization failed:", err.message);
+    console.error("❌ Python summarization failed:", err.message);
     return "Summary generation failed.";
   }
 };
