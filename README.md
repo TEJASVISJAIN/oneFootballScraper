@@ -1,17 +1,18 @@
 # OneFootball DFS Summarizer
 
-A web scraper and summarization API for OneFootball articles. This project uses Node.js (Puppeteer) to crawl and extract football news articles from [onefootball.com](https://onefootball.com), and Python (FastAPI) to provide a streaming API for triggering scrapes and retrieving results. Optionally, it can summarize articles using Groq AI models.
+A web scraper and summarization API for OneFootball articles. This project uses Node.js (Puppeteer) to crawl and extract football news articles from [onefootball.com](https://onefootball.com), and Python (FastAPI + LangChain) to provide a summarization API. The Node.js scraper sends article text to the Python API for summarization.
 
 ## Features
 - Scrapes top articles and related news from OneFootball using Puppeteer
 - Recursively follows related articles up to a configurable depth
 - Stores extracted content and metadata in structured JSON files
-- (Optional) Summarizes articles using Groq AI models
-- Provides a FastAPI server with endpoints to trigger scraping and stream results
+- **Summarizes articles using a Python FastAPI service with LangChain and Groq**
+- Provides a FastAPI server with endpoints to summarize articles
 
 ## Project Structure
 ```
-├── main.py                # FastAPI server
+├── main.py                # (Optional) FastAPI server entry
+├── langchain_summarizer.py # Python summarization API (FastAPI + LangChain)
 ├── scraper.py             # Python bridge to Node.js scraper
 ├── oneFootballScraper.js  # Puppeteer-based scraper (Node.js)
 ├── requirements.txt       # Python dependencies
@@ -40,52 +41,50 @@ pip install -r requirements.txt
 
 ### 3. Install Node.js dependencies
 ```bash
-npm install puppeteer dotenv groq-sdk
+npm install puppeteer dotenv axios
 ```
 
-### 4. Set up environment variables
-Create a `.env` file in the project root with your API keys:
+### 4. Set up environment variables for Python
+Create a `.env` file in the project root with your API key:
 ```
-GROK_AI_API=your_groq_api_key_here        # For summarization
+GROQ_API_KEY=your_groq_api_key_here
 ```
 
-## Usage
-
-### Start the FastAPI server
+### 5. Start the Python FastAPI summarization server
+Make sure your `.env` is present, then run:
 ```bash
-uvicorn main:app --reload
+uvicorn langchain_summarizer:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Trigger a scrape
-- Open [http://localhost:8000/scrape](http://localhost:8000/scrape) in your browser or use `curl`:
-  ```bash
-  curl http://localhost:8000/scrape
-  ```
-- The scraper will run, and output will be streamed as text events.
-- Scraped articles are saved under `onefootball/articles/` in nested folders.
+### 6. Start the Node.js scraper
+In a new terminal:
+```bash
+node oneFootballScraper.js
+```
 
-### API Endpoints
-- `GET /` — Health check, returns a status message.
-- `GET /scrape` — Starts the scraper and streams logs/results as Server-Sent Events (SSE).
+The Node.js scraper will send article text to the Python API for summarization and save the results.
+
+## API Endpoints
+- `POST /summarize` (Python FastAPI) — Receives `{ "article_text": "..." }` and returns `{ "summary": "..." }`
 
 ## Output Format
 Each article and its related articles are saved in nested directories, each containing a `metadata.json` file:
 
 ```json
 {
-  "title": "Is Bayern Munich v Boca Juniors on TV? How to watch Club World Cup game for free",
-  "link": "https://onefootball.com/en/news/is-bayern-munich-v-boca-juniors-on-tv-how-to-watch-club-world-cup-game-for-free-41268431",
+  "title": "...",
+  "link": "...",
   "content": "...full article text...",
   "summary": "...summary or error message..."
 }
 ```
 
 ## Environment Variables
-- `GROK_AI_API` — For summarization
+- `GROQ_API_KEY` — For summarization (set in `.env` for Python)
 
 ## Dependencies
-- **Python:** fastapi, uvicorn, python-dotenv
-- **Node.js:** puppeteer, dotenv, groq-sdk
+- **Python:** fastapi, uvicorn, python-dotenv, langchain, langchain_groq
+- **Node.js:** puppeteer, dotenv, axios
 
 ## License
 MIT
@@ -93,12 +92,6 @@ MIT
 ## Acknowledgements
 - [OneFootball](https://onefootball.com) for the source content
 
-## Summarization Provider Configuration
-
-The code uses Groq AI for summarization. Make sure to set the corresponding API key in your `.env` file.
-
-**Environment Variables:**
-- `GROK_AI_API` — For summarization
-
-**Dependencies:**
-- `groq-sdk` (for Groq AI) 
+## Notes
+- The Node.js code no longer uses the Groq SDK directly. All summarization is handled by the Python FastAPI service using LangChain.
+- Ensure the Python server is running before starting the Node.js scraper. 
